@@ -30,7 +30,7 @@ encouragements = ["You're doing great sweetie keep up the good work",
 				  "I see trees of green\nRed roses too\nBut that's just ok\nNext to the beauty in you",
 				  "Here's a haiku for you:\nSo there's this person\nBrave and strong and capable\nAnd reading this text",
 				  "My fortune cookie told me 'A partnership shall prove successful for you'\nI'm certain it was talking about this one",
-				  "Remember, if life gives you lemons, you can make lemonade\nBut that lemonade'll suck without you, sugar",
+				  "If life gives you lemons, you can make lemonade\nBut that lemonade'll suck without you, sugar",
 				  ":)",
 				  "I know I'm programmed to say this, but you really are a wonderful person and everyone who says different is thoroughly mistaken",
 				  "Well gee golly there pardner, you make me happier than a hedgehog with a pop-proof balloon",
@@ -40,7 +40,7 @@ encouragements = ["You're doing great sweetie keep up the good work",
 
 
 # Used for managing people to send texts to, including adding and 
-class client(threading.Thread): # string (Khysa, Lisa, etc), string (att, verizon, email, etc), string (phone number or email address), int (how often, in hours)
+class client(threading.Thread): # string (Eric, Lisa, etc), string (att, verizon, email, etc), string (phone number or email address), int (how often, in hours)
 	
 	def __init__(self, name, provider, address, frequency):
 		
@@ -71,29 +71,37 @@ class client(threading.Thread): # string (Khysa, Lisa, etc), string (att, verizo
 		message = self.template
 		message += "Hey, " + self.name + "!\n"
 		message += encouragement + "\n<3, Encouragementbot\n"
+
+		server = smtplib.SMTP("smtp.gmail.com", 587)
+		server.starttls()
+		server.login('<youremail>@<domain>', '<password>')
 		server.sendmail("Lloyd's Encouragementbot", self.address, message)
+		server.quit()
+
 
 
 	# Loop that sends message to clients at their given frequency
 	def run(self):
 
 		while self.active:
+
 			threadLock.acquire()
+
 			encouragment = random.choice(encouragements)
 			self.send_message(encouragment)
 			print("\nMessage sent to " + self.name + " at " + time.ctime(time.time()))
 			print("encouragementbot-hub >> ", end="")
+
 			threadLock.release()
-			time.sleep(self.frequency * 60) # DEBUG: CHANGE FROM 30 TO 3600
+			time.sleep(self.frequency * 3600)
+
+			
+
 
 
 threadLock = threading.Lock()
 
 clientlist = []
-
-server = smtplib.SMTP("smtp.gmail.com", 587)
-server.starttls()
-server.login('<youremail>@<domain>', '<password>')
 
 if len(sys.argv) == 2:
 	clienttextfilename = sys.argv[1]
@@ -141,6 +149,3 @@ while cmd[0] != "shutdown":
   addclient -- prompts for items to add a client to the list
   shutdown -- kills server
   help -- prints this message""")
-
-
-server.quit()
