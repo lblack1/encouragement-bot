@@ -17,12 +17,12 @@ providers = {
 	"email" : ""
 }
 
+# Requires running server in the same directory as a text file of encouragements (one per line)
 encouragements = []
 with open("Encouragements.txt") as f:
 	encouragements = f.readlines()
 	for i, line in enumerate(encouragements):
 		encouragements[i] = '\n'.join(line.split('\\'))
-
 
 
 # Used for managing people to send texts to
@@ -38,6 +38,8 @@ class client(threading.Thread):
 			return
 		
 		self.name = name
+		self.provider = provider
+		self.addrnum = address
 		self.address = address + providers[provider]
 		
 		if frequency < 1:
@@ -64,7 +66,7 @@ class client(threading.Thread):
 
 		server = smtplib.SMTP("smtp.gmail.com", 587)
 		server.starttls()
-		server.login('<youremail>@<domain>', '<password>')
+		server.login('<youremail>', '<password>')
 		server.sendmail("Lloyd's Encouragementbot", self.address, message)
 		server.quit()
 
@@ -89,6 +91,8 @@ class client(threading.Thread):
 			
 			for i, line in enumerate(lines):
 				attr = line.split('-')
+				if len(attr) != 5:
+					continue
 				if attr[0] == self.name:
 					found = True
 					attr[4] = str(time.time())
@@ -96,7 +100,7 @@ class client(threading.Thread):
 					break
 
 			if not found:
-				lines.append(self.name + '-' + self.provider + '-' + self.address + '-' + str(self.frequency) + '-' + str(time.time()))
+				lines.append(self.name + '-' + self.provider + '-' + self.addrnum + '-' + str(self.frequency) + '-' + str(time.time()) + '\n')
 
 
 		with open(filename, "w") as f:
