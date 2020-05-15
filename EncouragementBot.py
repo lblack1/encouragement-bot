@@ -17,25 +17,11 @@ providers = {
 	"email" : ""
 }
 
-encouragements = ["You're doing great sweetie keep up the good work",
-				  "I can see that you're rocking it, and that's coming from a bot so you know it's true",
-				  "When I grow up to be a human, I want to be just like you",
-				  "I saw a strongman competition the other day and thought of you, but like emotionally",
-				  "You've got this yo\nI believe in you",
-				  "Remember, you have people who love you that you can lean on if you need to\nLike me, Encouragementbot!",
-				  "01101100 01101111 01110110 01100101 00100000 01111001 01101111 01110101 00101100 00100000 01100010 01101111 01101111",
-				  "You improve the world just by being you",
-				  "You're a beacon of light in the darkness",
-				  "Did you know sea otters hold hands when they sleep to keep from drifting apart?\nI know that isn't exactly encouraging but boy is it adorable",
-				  "I see trees of green\nRed roses too\nBut that's just ok\nNext to the beauty in you",
-				  "Here's a haiku for you:\nSo there's this person\nBrave and strong and capable\nAnd reading this text",
-				  "My fortune cookie told me 'A partnership shall prove successful for you'\nI'm certain it was talking about this one",
-				  "If life gives you lemons, you can make lemonade\nBut that lemonade'll suck without you, sugar",
-				  ":)",
-				  "I know I'm programmed to say this, but you really are a wonderful person and everyone who says different is thoroughly mistaken",
-				  "Well gee golly there pardner, you make me happier than a hedgehog with a pop-proof balloon",
-				  "There are doubtless subtle surprises ahead, but you are ready, whatever they may be"
-]
+encouragements = []
+with open("Encouragements.txt") as f:
+	encouragements = f.readlines()
+	for i, line in enumerate(encouragements):
+		encouragements[i] = '\n'.join(line.split('\\'))
 
 
 
@@ -73,7 +59,7 @@ class client(threading.Thread):
 	# Sends an encouragement to send to the client using Google's SMTP server
 	def send_message(self, encouragement):
 		message = self.template
-		message += "Hey, " + self.name + "!\n"
+		message += "Hey, " + self.name + "!\n\n"
 		message += encouragement + "\n<3, Encouragementbot\n"
 
 		server = smtplib.SMTP("smtp.gmail.com", 587)
@@ -131,8 +117,8 @@ class client(threading.Thread):
 
 			threadLock.acquire()
 
-			encouragment = random.choice(encouragements)
-			self.send_message(encouragment)
+			encouragement = random.choice(encouragements)
+			self.send_message(encouragement)
 			print("\nMessage sent to " + self.name + " at " + time.ctime(time.time()))
 			print("encouragementbot-hub >> ", end="")
 
@@ -197,9 +183,16 @@ while cmd[0] != "shutdown":
 		clientlist.append(newc)
 		newc.start()
 
+	elif cmd[0] == "refresh":
+		with open("Insults.txt") as f:
+			insults = f.readlines()
+			for i, line in enumerate(insults):
+				insults[i] = '\n'.join(line.split('\\'))
+
 	else:
 		print("""  clientlist -- lists clients by name and frequency of encouragement
   remove <client name> -- removes a client from the encouragment list
   addclient -- prompts for items to add a client to the list
+  refresh -- refreshes the list of messages from Encouragements.txt
   shutdown -- kills server
   help -- prints this message""")

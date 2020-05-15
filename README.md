@@ -13,3 +13,6 @@ Server shell is fairly janky, but is more or less functional.
 ## v2.1
 Adds tracking of time last message was sent, which allows for shutting down the Encouragementbot Server without sending clients in a client file messages pre-emptively on startup.
 Server shell still janky, threading with shared resources is hard.
+
+## v2.2
+Moves the list of encouraging messages to a text file named "Encouragements.txt", which can be refreshed while the server is running without shutting down the program
