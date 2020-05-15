@@ -4,13 +4,13 @@ import threading
 import random
 import sys
 
-random.seed()
+random.seed(time.time())
 
 providers = {
 	"att" : "@mms.att.net",
 	"verizon" : "@vzwpix.com",
 	"tmobile" : "@tmomail.net",
-	"sprint" : "@pm.sprintpcs.com",
+	"sprint" : "@pm.sprint.com",
 	"virgin" : "@vmpix.com",
 	"cricket" : "@mms.cricketwireless.net",
 	"boost" : "@myboostmobile.com",
@@ -39,10 +39,11 @@ encouragements = ["You're doing great sweetie keep up the good work",
 
 
 
-# Used for managing people to send texts to, including adding and 
-class client(threading.Thread): # string (Eric, Lisa, etc), string (att, verizon, email, etc), string (phone number or email address), int (how often, in hours)
-	
-	def __init__(self, name, provider, address, frequency):
+# Used for managing people to send texts to
+class client(threading.Thread):
+
+	# string (Eric, Lisa, etc), string (att, verizon, email, etc), string (phone number or email address), int (how often, in hours), float (last message time)
+	def __init__(self, name, provider, address, frequency, lastmessagetime):
 		
 		threading.Thread.__init__(self)
 
@@ -66,7 +67,10 @@ class client(threading.Thread): # string (Eric, Lisa, etc), string (att, verizon
 		
 		self.active = True
 
+		self.lastmessagetime = lastmessagetime
 
+
+	# Sends an encouragement to send to the client using Google's SMTP server
 	def send_message(self, encouragement):
 		message = self.template
 		message += "Hey, " + self.name + "!\n"
@@ -78,10 +82,50 @@ class client(threading.Thread): # string (Eric, Lisa, etc), string (att, verizon
 		server.sendmail("Lloyd's Encouragementbot", self.address, message)
 		server.quit()
 
+		self.lastmessagetime = time.time()
+
+
+	# Updates the user's last message sent time in client list.
+	def update_in_file(self):
+
+		filename = ""
+
+		if len(sys.argv) == 2:
+			filename = sys.argv[1]
+		else:
+			filename = "Clients.txt"
+
+		lines = None
+
+		with open(filename, "r") as f:
+			found = False
+			lines = f.readlines()
+			
+			for i, line in enumerate(lines):
+				attr = line.split('-')
+				if attr[0] == self.name:
+					found = True
+					attr[4] = str(time.time())
+					lines[i] = '-'.join(attr) + '\n'
+					break
+
+			if not found:
+				lines.append(self.name + '-' + self.provider + '-' + self.address + '-' + str(self.frequency) + '-' + str(time.time()))
+
+
+		with open(filename, "w") as f:
+			for line in lines:
+				f.write(line)
+
 
 
 	# Loop that sends message to clients at their given frequency
 	def run(self):
+
+		if self.lastmessagetime != None:
+			nextmsgtime = self.lastmessagetime + (self.frequency * 3600) - 2
+			if time.time() < nextmsgtime:
+				time.sleep(nextmsgtime - time.time())
 
 		while self.active:
 
@@ -92,13 +136,18 @@ class client(threading.Thread): # string (Eric, Lisa, etc), string (att, verizon
 			print("\nMessage sent to " + self.name + " at " + time.ctime(time.time()))
 			print("encouragementbot-hub >> ", end="")
 
+			self.update_in_file()
+
 			threadLock.release()
-			time.sleep(self.frequency * 3600)
+
+			self.lastmessagetime = time.time()
+
+			time.sleep((self.frequency * 3600) - 2)
 
 			
 
 
-
+# "Main method"
 threadLock = threading.Lock()
 
 clientlist = []
@@ -108,8 +157,10 @@ if len(sys.argv) == 2:
 	with open(clienttextfilename) as file:
 		lines = file.readlines()
 		for line in lines:
+			if line == '\n':
+				continue
 			attr = line.split('-')
-			newc = client(attr[0], attr[1], attr[2], int(attr[3]))
+			newc = client(attr[0], attr[1], attr[2], int(attr[3]), float(attr[4]))
 			clientlist.append(newc)
 			newc.start()
 
@@ -121,9 +172,12 @@ while cmd[0] != "shutdown":
 
 	cmd = input("encouragementbot-hub >> ").split()
 
+	if len(cmd) == 0:
+		continue
+
 	if cmd[0] == "clientlist":
 		for c in clientlist:
-			print(c.name + " - msg every " + str(c.frequency) + " hours")
+			print(c.name + " - msg every " + str(c.frequency) + " hours - last message sent " + time.ctime(c.lastmessagetime))
 		
 	elif cmd[0] == "remove":
 		for c in clientlist:
@@ -139,7 +193,7 @@ while cmd[0] != "shutdown":
 		addr = input("Address/number: ")
 		freq = int(input("Frequency (hours): "))
 		threadLock.release()
-		newc = client(nm, prov, addr, freq)
+		newc = client(nm, prov, addr, freq, 0.0)
 		clientlist.append(newc)
 		newc.start()
 
